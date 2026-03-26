@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     tabText: { fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
     tabTextActive: { color: '#6366f1' },
     tabIconWithBadge: { position: 'relative' },
-    miniBadge: { position: 'absolute', -top: 6, -right: 8, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+    miniBadge: { position: 'absolute', top: -6, right: -8, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
     miniBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
     content: { flex: 1 },
     tabContent: { padding: 20 },
