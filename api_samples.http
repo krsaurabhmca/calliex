@@ -1,0 +1,70 @@
+### CallDesk CRM API Testing Samples
+### Use with VS Code REST Client or any HTTP tool.
+
+@baseUrl = http://localhost/calldesk/api
+@apiKey = YOUR_ORG_API_KEY_FROM_SETTINGS
+
+# 1. CREATE A NEW LEAD
+# Endpoint: leads.php (POST)
+POST {{baseUrl}}/leads.php
+X-API-KEY: {{apiKey}}
+Content-Type: application/x-www-form-urlencoded
+
+name=Jane Doe&
+mobile=9876543210&
+status=New&
+remarks=Automated via HTTP API
+
+###
+
+# 2. ASSIGN LEAD TO EXECUTIVE
+# Endpoint: assign.php (POST)
+# Required: lead_id, assign_to (Executive User ID)
+POST {{baseUrl}}/assign.php
+X-API-KEY: {{apiKey}}
+Content-Type: application/x-www-form-urlencoded
+
+lead_id=123&
+assign_to=5
+
+###
+
+# 3. GET LIST OF FOLLOW-UPS (TODAY'S TASK)
+# Endpoint: followups.php (GET)
+GET {{baseUrl}}/followups.php?date_filter=today
+X-API-KEY: {{apiKey}}
+
+###
+
+# 4. SEND AUTOMATED WHATSAPP (Via Green-API)
+# Endpoint: send_whatsapp.php (POST)
+POST {{baseUrl}}/send_whatsapp.php
+X-API-KEY: {{apiKey}}
+Content-Type: application/x-www-form-urlencoded
+
+mobile=919876543210&
+message=Hi, your ticket #4321 has been updated. CallDesk CRM.
+
+###
+
+# 5. UPLOAD CALL RECORDING
+# Endpoint: upload_recording.php (POST)
+# Uses multipart/form-data. In a real tool like cURL, use --form.
+POST {{baseUrl}}/upload_recording.php
+X-API-KEY: {{apiKey}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="recording"; filename="call_recording.mp3"
+Content-Type: audio/mpeg
+
+< ./sample_recording.mp3
+--boundary123
+Content-Disposition: form-data; name="mobile"
+
+9876543210
+--boundary123
+Content-Disposition: form-data; name="call_time"
+
+2026-03-21 22:30:00
+--boundary123--

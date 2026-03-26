@@ -1,0 +1,39 @@
+# CallDesk CRM - Lead Management and Call Handling
+
+CallDesk is a professional agentic CRM system designed for sales teams to manage leads, track customer interactions, and automate follow-ups. The system consists of a robust PHP backend and a powerful React Native (Expo) mobile application.
+
+## 🚀 Key Features
+
+### 📱 Mobile Application (React Native / Expo)
+- **Automatic Post-Call Interaction:** Instantly opens a dedicated "Lead Action" screen after every business call to record notes and status.
+- **Smart Lead Detection:** Automatically identifies if the caller is an existing lead or a new prospect.
+- **10-Digit Cleaning:** Automatically formats all phone numbers to the standard Indian format (+91 prefix handling).
+- **Call Log Sync:** Seamlessly synchronizes business call history with the central CRM database.
+- **Recording Playback:** Listen to call recordings directly within the app history.
+- **Role-Based Access:** Specialized interfaces for Admins and Sales Executives.
+- **Safe Area Aware:** Premium UI design optimized for all modern Android devices, including notches and dynamic islands.
+
+### 🌐 Backend (PHP / MySQL)
+- **Organization-Based Multi-tenancy (SaaS):** Support for multiple independent organizations within one installation.
+- **Lead Pipeline Management:** Track leads through custom statuses: Pending, Follow-up, Interested, Converted, and Lost.
+- **Executive Management:** Bulk assign leads to different sales executives.
+- **Real-time Reports:** Dashboard with analytics on lead distribution, conversion rates, and executive performance.
+- **Source Tracking:** Manage lead channels like Facebook, Google, WhatsApp, and Website.
+- **Secure API:** Token-based authentication for mobile and web interactions.
+
+## 🛠 Tech Stack
+- **Frontend:** React Native, Expo, Lucide Icons, React Native Paper.
+- **Backend:** PHP (OOP Approach), MySQL.
+- **Infrastructure:** Hostinger SMTP integration for automated professional emails.
+
+## 🔒 Security & Privacy
+- **End-to-End Encryption:** All data transmitted via HTTPS.
+- **Role-Based Security:** Strict server-side verification for all lead actions.
+- **Privacy First:** Explicit permissions required for Call Logs and Contacts (designed for Play Store compliance).
+
+## 📄 Privacy Policy & Compliance
+For detailed information on how we handle user data and permissions (especially READ_CALL_LOG and FOREGROUND_SERVICE), please visit:
+[Privacy Policy](https://calldesk.offerplant.com/privacy-policy.php)
+
+---
+© 2026 Calldesk CRM by **Digital Seal**. All rights reserved.
