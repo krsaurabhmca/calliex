@@ -10,7 +10,21 @@ $executive_id = $auth_user['id'];
 $org_id = $auth_user['organization_id'];
 
 if (!isset($_FILES['recording'])) {
-    sendResponse(false, 'No recording file provided', null, 400);
+    sendResponse(false, 'No recording file provided. Check server post_max_size.', ['post_received' => $_POST], 400);
+}
+
+if ($_FILES['recording']['error'] !== UPLOAD_ERR_OK) {
+    $errors = [
+        UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+        UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form',
+        UPLOAD_ERR_PARTIAL    => 'The uploaded file was only partially uploaded',
+        UPLOAD_ERR_NO_FILE    => 'No file was uploaded',
+        UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+        UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the file upload',
+    ];
+    $code = $_FILES['recording']['error'];
+    sendResponse(false, 'Upload Error: ' . ($errors[$code] ?? 'Unknown error (' . $code . ')'), null, 500);
 }
 
 // Metadata from app
@@ -19,6 +33,7 @@ $calltime_from_app = mysqli_real_escape_string($conn, $_POST['call_time'] ?? '')
 
 // Use original filename (sanitized)
 $original_filename = basename($_FILES['recording']['name']);
+// Allow spaces in filename by replacing them with underscores, but keep other characters
 $new_filename      = preg_replace('/[^A-Za-z0-9._()-]/', '_', $original_filename);
 
 // ─── Parse filename server-side for reliability ──────────────────────────────
