@@ -45,34 +45,51 @@ export const resetUploadedFiles = async () => {
  */
 export const parseMIUIFilename = (filename: string) => {
     const decodedName = decodeURIComponent(filename);
+    console.log(`Sync: Analyzing filename: ${decodedName}`);
 
-    // Extract last 10 digits for mobile (strips country codes like 0091/91)
-    const phoneRegex = /(\d{10,})/;
-    const phoneMatch = decodedName.match(phoneRegex);
-    if (!phoneMatch) return null;
-    const mobile = phoneMatch[0].slice(-10);
+    // 1. Mobile Extraction
+    // First try: Number inside parentheses (9876543210)
+    let phoneMatch = decodedName.match(/\((\d{10,})\)/);
+    // Second try: Any sequence of 10+ digits at the start or after underscore
+    if (!phoneMatch) phoneMatch = decodedName.match(/(?:^|_| )(\d{10,})/);
+    
+    if (!phoneMatch) {
+         console.log(`Sync: No phone number found in ${decodedName}`);
+         return null;
+    }
+    const mobile = phoneMatch[1].slice(-10);
 
-    // Pattern 1: underscore then exactly 14 digits then dot (YYYYMMDDHHMMSS)
-    // Anchored to _ to avoid matching phone number digits
+    // 2. Timestamp Extraction
+    // Pattern 1: exactly 14 digits (YYYYMMDDHHMMSS)
     const timeRegex1 = /_(\d{14})\./;
     // Pattern 2: Dash/Underscore separated (YYYY-MM-DD_HH-MM-SS)
     const timeRegex2 = /(\d{4})[-_](\d{2})[-_](\d{2})[-_](\d{2})[-_](\d{2})[-_](\d{2})/;
+    // Pattern 3: Simple YYYYMMDD (fallback)
+    const timeRegex3 = /_(\d{8})_/;
 
     const timeMatch1 = decodedName.match(timeRegex1);
     const timeMatch2 = decodedName.match(timeRegex2);
+    const timeMatch3 = decodedName.match(timeRegex3);
 
     let callTime = '';
 
     if (timeMatch1) {
-        // timeMatch1[1] is the captured group (14 digits)
         const t = timeMatch1[1];
         callTime = `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)} ${t.slice(8, 10)}:${t.slice(10, 12)}:${t.slice(12, 14)}`;
     } else if (timeMatch2) {
         const [, y, m, d, h, min, s] = timeMatch2;
         callTime = `${y}-${m}-${d} ${h}:${min}:${s}`;
+    } else if (timeMatch3) {
+        const t = timeMatch3[1];
+        callTime = `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)} 00:00:00`;
     }
 
-    if (!callTime) return null;
+    if (!callTime) {
+         console.log(`Sync: No timestamp found in ${decodedName}`);
+         return null;
+    }
+    
+    console.log(`Sync: Parsed meta -> Mobile: ${mobile}, Time: ${callTime}`);
     return { mobile, callTime, originalName: decodedName };
 };
 
@@ -105,9 +122,11 @@ export const syncRecordings = async (onProgress?: (msg: string) => void) => {
         const toUpload = files.filter(f => {
             const fullPath = isSAF ? decodeURIComponent(f) : f;
             const fileName = fullPath.split('/').pop() || '';
-            const isAudio = (fileName.endsWith('.mp3') || fileName.endsWith('.amr') || fileName.endsWith('.aac') || fileName.endsWith('.m4a'));
+            const isAudio = (/\.(mp3|amr|aac|m4a|wav|opus)$/i).test(fileName);
             return isAudio && !uploaded.includes(fileName);
         });
+
+        console.log(`Sync: ${toUpload.length} new recordings to upload`);
 
         if (toUpload.length === 0) {
             return { success: true, message: 'No new recordings found', count: 0 };
@@ -144,6 +163,10 @@ export const syncRecordings = async (onProgress?: (msg: string) => void) => {
                 syncedCount++;
             } else {
                 console.error(`Sync: Failed to upload ${fileName}:`, result.message);
+                // If it's a server error but recording already exists, we might want to mark as uploaded to avoid loop
+                if (result.message && (result.message.includes('already exists') || result.message.includes('duplicate'))) {
+                     await markFileAsUploaded(fileName);
+                }
                 failCount++;
             }
         }
@@ -185,7 +208,7 @@ const uploadFile = async (uri: string, metadata: { mobile: string, callTime: str
             method: 'POST',
             body: formData,
             headers: {
-                'Content-Type': 'multipart/form-data',
+                // Do NOT set Content-Type manually for FormData with fetch
                 // Authorization header sometimes fails with multipart on some PHP servers, 
                 // so we pass token in URL too
                 'Authorization': `Bearer ${token}`,
@@ -193,9 +216,14 @@ const uploadFile = async (uri: string, metadata: { mobile: string, callTime: str
         });
 
         const text = await response.text();
-        return JSON.parse(text);
-    } catch (error) {
+        console.log(`Upload Result Raw: ${text}`);
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            return { success: false, message: 'Server returned invalid JSON: ' + text.slice(0, 100) };
+        }
+    } catch (error: any) {
         console.error('File Upload Error:', error);
-        return { success: false };
+        return { success: false, message: error.message };
     }
 };

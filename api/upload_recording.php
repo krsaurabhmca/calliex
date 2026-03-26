@@ -67,34 +67,51 @@ if (!is_dir($upload_dir)) {
 $target_path = $upload_dir . $new_filename;
 
     if (move_uploaded_file($_FILES['recording']['tmp_name'], $target_path)) {
-    $db_path = 'uploads/recordings/' . $org_id . '/' . $new_filename;
+        $db_path = 'uploads/recordings/' . $org_id . '/' . $new_filename;
 
-    // ── 1. Always insert into the dedicated call_recordings table ──
-    $ins_rec = "INSERT INTO call_recordings 
-                (organization_id, executive_id, mobile, call_time, recording_path, duration)
-                VALUES ($org_id, $executive_id, '$mobile', '$calltime', '$db_path', 0)";
-    mysqli_query($conn, $ins_rec);
+        // ── 0. Check for duplicate ──
+        $dup_check = "SELECT id FROM call_recordings 
+                      WHERE organization_id = $org_id AND mobile = '$mobile' AND call_time = '$calltime' 
+                      LIMIT 1";
+        $dup_res = mysqli_query($conn, $dup_check);
+        if (mysqli_num_rows($dup_res) > 0) {
+            sendResponse(true, 'Recording already exists on server', [
+                'path'    => $db_path,
+                'mobile'  => $mobile,
+                'time'    => $calltime,
+                'status'  => 'duplicate'
+            ]);
+        }
 
-    // ── 2. (Optional) Still try to match an existing call log for the recording_path column
-    // This maintains backward compatibility for other parts of the system that look at call_logs.recording_path
-    $sql_match = "UPDATE call_logs 
-            SET recording_path = '$db_path' 
-            WHERE mobile = '$mobile' 
-            AND ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) < 600
-            AND organization_id = $org_id 
-            AND recording_path IS NULL
-            ORDER BY ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) ASC
-            LIMIT 1";
-    mysqli_query($conn, $sql_match);
-    $matched = mysqli_affected_rows($conn) > 0;
+        // ── 1. Always insert into the dedicated call_recordings table ──
+        $ins_rec = "INSERT INTO call_recordings 
+                    (organization_id, executive_id, mobile, call_time, recording_path, duration)
+                    VALUES ($org_id, $executive_id, '$mobile', '$calltime', '$db_path', 0)";
+        
+        if (!mysqli_query($conn, $ins_rec)) {
+             sendResponse(false, 'Database Insert Error: ' . mysqli_error($conn), null, 500);
+        }
 
-    sendResponse(true, 'Recording uploaded and saved successfully', [
-        'path'    => $db_path,
-        'mobile'  => $mobile,
-        'time'    => $calltime,
-        'matched' => $matched,
-    ]);
-} else {
-    sendResponse(false, 'Failed to save uploaded file', null, 500);
-}
+        // ── 2. (Optional) Still try to match an existing call log for the recording_path column
+        $sql_match = "UPDATE call_logs 
+                SET recording_path = '$db_path' 
+                WHERE mobile = '$mobile' 
+                AND ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) < 600
+                AND organization_id = $org_id 
+                AND recording_path IS NULL
+                ORDER BY ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) ASC
+                LIMIT 1";
+        mysqli_query($conn, $sql_match);
+        $matched = mysqli_affected_rows($conn) > 0;
+
+        sendResponse(true, 'Recording uploaded and saved successfully', [
+            'path'    => $db_path,
+            'mobile'  => $mobile,
+            'time'    => $calltime,
+            'matched' => $matched,
+        ]);
+    } else {
+        $error = error_get_last();
+        sendResponse(false, 'Failed to save uploaded file. ' . ($error['message'] ?? ''), null, 500);
+    }
 ?>
