@@ -4,7 +4,7 @@ import { makeCall } from '../../services/dialer';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiCall } from '../../services/api';
-import { Phone, User, Plus, Search, MessageSquare, MapPin, X, LayoutGrid, CheckCircle2, UserPlus, Trash2, Edit3, MessageCircle, ChevronRight } from 'lucide-react-native';
+import { Phone, User, Plus, Search, MessageSquare, MapPin, X, LayoutGrid, CheckCircle2, UserPlus, Trash2, Edit3, MessageCircle, ChevronRight, Activity } from 'lucide-react-native';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { useRouter } from 'expo-router';
 
@@ -317,6 +317,15 @@ export default function LeadsScreen() {
                                     </TouchableOpacity>
                                 </>
                             )}
+                            
+                            <TouchableOpacity style={[styles.menuItem, { width: '100%' }]} onPress={() => {
+                                if (!selectedLead) return;
+                                setMenuVisible(false);
+                                router.push({ pathname: '/call-details', params: { mobile: selectedLead.mobile, name: selectedLead.name, leadId: selectedLead.id } });
+                            }}>
+                                <View style={[styles.menuIcon, { backgroundColor: '#f0fdf4', width: '100%' }]}><Activity size={20} color="#16a34a" /></View>
+                                <Text style={styles.menuLabel}>Quick Activity & History</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </TouchableOpacity>

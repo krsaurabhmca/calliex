@@ -114,9 +114,9 @@ include 'includes/header.php';
                 <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                     <!-- Mobile & Lead -->
                     <td style="padding: 0.75rem 1rem;">
-                        <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem;">
+                        <a href="call_details.php?mobile=<?= $row['mobile'] ?>" style="font-weight: 700; color: var(--primary); font-size: 0.9rem; text-decoration: none; display: block;">
                             <i class="fas fa-phone-alt" style="font-size: 0.625rem;"></i> <?php echo $row['mobile']; ?>
-                        </div>
+                        </a>
                         <?php if ($row['lead_id']): ?>
                             <a href="lead_view.php?id=<?php echo $row['lead_id']; ?>" style="font-size: 0.75rem; color: var(--text-main); font-weight: 600; text-decoration: none;">
                                 <i class="fas fa-user" style="font-size: 0.6rem; color: #10b981;"></i> <?php echo htmlspecialchars($row['lead_name']); ?>

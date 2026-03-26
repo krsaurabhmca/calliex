@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { fetchAndSyncCallLogs, checkCallLogPermission, requestCallLogPermission } from '../../services/callLog';
 import { apiCall } from '../../services/api';
 import { getUser } from '../../services/auth';
-import { PhoneCall, RefreshCcw, Info, CheckCircle2, Clock, UserPlus, FileEdit, X, ChevronRight, Phone, MessageSquare, Calendar as CalendarIcon, Flag, ShieldAlert, CheckCircle, Play, Pause, Square } from 'lucide-react-native';
+import { PhoneCall, RefreshCcw, Info, CheckCircle2, Clock, UserPlus, FileEdit, X, ChevronRight, Phone, MessageSquare, Calendar as CalendarIcon, Flag, ShieldAlert, CheckCircle, Play, Pause, Square, StickyNote } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { Audio } from 'expo-av';
@@ -33,7 +33,7 @@ export default function CallsSyncScreen() {
     const [nextFollowUp, setNextFollowUp] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [activeTab, setActiveTab] = useState<'History' | 'Recordings' | 'Update'>('Update');
+    const [activeTab, setActiveTab] = useState<'History' | 'Recordings' | 'Update' | 'Notes'>('Update');
     const [recordings, setRecordings] = useState<any[]>([]);
     const [loadingRecordings, setLoadingRecordings] = useState(false);
     const [userRole, setUserRole] = useState('');
@@ -45,6 +45,8 @@ export default function CallsSyncScreen() {
     const [editName, setEditName] = useState('');
     const [historyLogs, setHistoryLogs] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [interactionHistory, setInteractionHistory] = useState<any[]>([]);
+    const [loadingInteractions, setLoadingInteractions] = useState(false);
 
     // Add Lead Modal State
     const [addLeadModalVisible, setAddLeadModalVisible] = useState(false);
@@ -207,22 +209,26 @@ export default function CallsSyncScreen() {
     };
 
     const openUpdateModal = (log: any) => {
-        if (!log.lead_id) {
-            openAddLeadModal(log);
-            return;
-        }
         let clean = log.mobile.replace(/[^0-9]/g, '');
         if (clean.length > 10) clean = clean.slice(-10);
         
-        setSelectedLog(log);
-        setEditName(log.lead_name || log.caller_name || '');
-        setUpdateStatus(log.lead_status || 'Interested');
-        setUpdateRemark('');
-        setNextFollowUp('');
-        setUpdateModalVisible(true);
-        setActiveTab('Update'); // Reset to Update tab
-        fetchLeadHistory(clean);
-        fetchLeadRecordings(clean);
+        router.push({
+            pathname: '/call-details',
+            params: {
+                mobile: clean,
+                name: log.lead_name || log.caller_name || 'Prospect',
+                leadId: log.lead_id || ''
+            }
+        });
+    };
+
+    const fetchInteractionHistory = async (mobile: string) => {
+        setLoadingInteractions(true);
+        const res = await apiCall(`followups.php?mobile=${mobile}`);
+        if (res.success) {
+            setInteractionHistory(res.data || []);
+        }
+        setLoadingInteractions(false);
     };
 
     const fetchLeadRecordings = async (mobile: string) => {
@@ -678,6 +684,13 @@ export default function CallsSyncScreen() {
                                 <Text style={[styles.tabText, activeTab === 'History' && styles.tabTextActive]}>History</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
+                                style={[styles.tabItem, activeTab === 'Notes' && styles.tabItemActive]}
+                                onPress={() => setActiveTab('Notes')}
+                            >
+                                <StickyNote size={16} color={activeTab === 'Notes' ? '#6366f1' : '#94a3b8'} />
+                                <Text style={[styles.tabText, activeTab === 'Notes' && styles.tabTextActive]}>Notes</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
                                 style={[styles.tabItem, activeTab === 'Recordings' && styles.tabItemActive]}
                                 onPress={() => setActiveTab('Recordings')}
                             >
@@ -771,6 +784,32 @@ export default function CallsSyncScreen() {
                                         ))
                                     ) : (
                                         <Text style={styles.noHistoryText}>No past call history found.</Text>
+                                    )}
+                                </View>
+                            ) : activeTab === 'Notes' ? (
+                                <View style={{ paddingVertical: 10 }}>
+                                    {loadingInteractions ? (
+                                        <ActivityIndicator color="#6366f1" size="large" />
+                                    ) : interactionHistory.length > 0 ? (
+                                        interactionHistory.map((note) => (
+                                            <View key={note.id} style={styles.historyItem}>
+                                                <View style={{ flex: 1 }}>
+                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                        <Text style={{ fontSize: 13, fontWeight: '900', color: '#1e293b' }}>{note.executive_name || 'System'}</Text>
+                                                        <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '800' }}>{formatDate(note.created_at)}</Text>
+                                                    </View>
+                                                    <Text style={{ fontSize: 12, color: '#475569', lineHeight: 18 }}>{note.remark}</Text>
+                                                    {note.next_follow_up_date && (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#f5f3ff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' }}>
+                                                            <CalendarIcon size={10} color="#6366f1" />
+                                                            <Text style={{ fontSize: 10, color: '#6366f1', fontWeight: '700', marginLeft: 4 }}>Next: {formatDate(note.next_follow_up_date)}</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.noHistoryText}>No past observations recorded.</Text>
                                     )}
                                 </View>
                             ) : (

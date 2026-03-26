@@ -422,7 +422,7 @@ include 'includes/header.php';
                              <i class="fas <?= $a['type'] == 'Incoming' ? 'fa-arrow-left-long' : ($a['type'] == 'Outgoing' ? 'fa-arrow-right-long' : 'fa-phone-slash') ?>"></i>
                         </div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 800; font-size: 0.8125rem; color: var(--text-main);"><?= $a['mobile'] ?></div>
+                            <a href="call_details.php?mobile=<?= $a['mobile'] ?>" style="text-decoration: none; font-weight: 800; font-size: 0.8125rem; color: var(--text-main);"><?= $a['mobile'] ?></a>
                             <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted);"><?= $a['exec_name'] ?> • <?= date('h:i A', strtotime($a['call_time'])) ?></div>
                         </div>
                     </div>

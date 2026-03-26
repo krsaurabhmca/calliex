@@ -173,11 +173,12 @@ include 'includes/header.php';
                             <td style="padding: 0.75rem; color: #64748b;"><?php echo date('d M, h:i A', strtotime($c['call_time'])); ?></td>
                             <td style="padding: 0.75rem; text-align: center; font-family: monospace;"><?php echo floor($c['duration']/60).'m '.($c['duration']%60).'s'; ?></td>
                             <td style="padding: 0.75rem; text-align: right;">
-                                <?php if($c['recording_path']): ?>
-                                    <button onclick="playRecord('<?php echo $c['recording_path']; ?>')" style="background: #eef2ff; color: #4f46e5; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-play"></i></button>
-                                <?php else: ?>
-                                    <span style="color: #e2e8f0;">—</span>
-                                <?php endif; ?>
+                                <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+                                    <?php if($c['recording_path']): ?>
+                                        <button onclick="playRecord('<?php echo $c['recording_path']; ?>')" style="background: #eef2ff; color: #4f46e5; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-play"></i></button>
+                                    <?php endif; ?>
+                                    <a href="call_details.php?mobile=<?= $c['mobile'] ?>" style="background: #f8fafc; color: var(--text-muted); padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 800; font-size: 0.65rem; text-decoration: none; border: 1px solid #e2e8f0;">DETAILS</a>
+                                </div>
                             </td>
                         </tr>
                         <?php endwhile; if(mysqli_num_rows($calls_res) == 0): ?>

@@ -198,7 +198,7 @@ include 'includes/header.php';
                 ?>
                 <tr style="border-bottom: 1px solid var(--border); transition: 0.2s;" onmouseover="this.style.background='#fbfcfe'" onmouseout="this.style.background='white'">
                     <td style="padding: 1rem 1.5rem;">
-                        <a href="<?= $row['lead_id'] ? 'lead_view.php?id='.$row['lead_id'] : '#' ?>" style="text-decoration: none; display: block;">
+                        <a href="call_details.php?mobile=<?= $row['mobile'] ?>" style="text-decoration: none; display: block;">
                             <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;"><?= htmlspecialchars($displayName) ?></div>
                             <div style="font-size: 0.75rem; color: var(--primary); font-weight: 700; margin-top: 2px;"><i class="fas fa-phone-alt" style="font-size: 0.65rem;"></i> <?= $row['mobile'] ?></div>
                         </a>

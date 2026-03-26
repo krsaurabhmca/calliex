@@ -16,6 +16,23 @@ if ($method === 'GET') {
         $where .= " AND l.assigned_to = $executive_id";
     }
 
+    // Historical interactions for a specific number
+    $mobile = mysqli_real_escape_string($conn, $_GET['mobile'] ?? '');
+    if ($mobile) {
+        $sql = "SELECT f.*, u.name as executive_name 
+                FROM follow_ups f 
+                JOIN leads l ON f.lead_id = l.id 
+                LEFT JOIN users u ON f.executive_id = u.id 
+                WHERE l.mobile = '$mobile' AND l.organization_id = $org_id 
+                ORDER BY f.created_at DESC LIMIT 50";
+        $result = mysqli_query($conn, $sql);
+        $history = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $history[] = $row;
+        }
+        sendResponse(true, 'Interaction history fetched', $history);
+    }
+
     // Search (Name/Mobile)
     $search = mysqli_real_escape_string($conn, $_GET['search'] ?? '');
     if ($search) {
