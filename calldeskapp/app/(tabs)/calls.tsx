@@ -33,6 +33,9 @@ export default function CallsSyncScreen() {
     const [nextFollowUp, setNextFollowUp] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [activeTab, setActiveTab] = useState<'History' | 'Recordings' | 'Update'>('Update');
+    const [recordings, setRecordings] = useState<any[]>([]);
+    const [loadingRecordings, setLoadingRecordings] = useState(false);
     const [userRole, setUserRole] = useState('');
     const [executives, setExecutives] = useState<any[]>([]);
     const [selectedExecutive, setSelectedExecutive] = useState('0');
@@ -217,15 +220,25 @@ export default function CallsSyncScreen() {
         setUpdateRemark('');
         setNextFollowUp('');
         setUpdateModalVisible(true);
+        setActiveTab('Update'); // Reset to Update tab
         fetchLeadHistory(clean);
+        fetchLeadRecordings(clean);
+    };
+
+    const fetchLeadRecordings = async (mobile: string) => {
+        setLoadingRecordings(true);
+        const res = await apiCall(`call_logs.php?action=recordings&mobile=${mobile}`);
+        if (res.success) {
+            setRecordings(res.data.recordings || []);
+        }
+        setLoadingRecordings(false);
     };
 
     const fetchLeadHistory = async (mobile: string) => {
         setLoadingHistory(true);
         const res = await apiCall(`call_logs.php?search=${mobile}`, 'POST');
         if (res.success) {
-            // Filter to only those with recordings and sort
-            setHistoryLogs(res.data.logs.filter((l: any) => l.recording_path));
+            setHistoryLogs(res.data.logs || []);
         }
         setLoadingHistory(false);
     };
@@ -649,108 +662,149 @@ export default function CallsSyncScreen() {
                             </TouchableOpacity>
                         </View>
 
+                        <View style={styles.tabBar}>
+                            <TouchableOpacity
+                                style={[styles.tabItem, activeTab === 'Update' && styles.tabItemActive]}
+                                onPress={() => setActiveTab('Update')}
+                            >
+                                <FileEdit size={16} color={activeTab === 'Update' ? '#6366f1' : '#94a3b8'} />
+                                <Text style={[styles.tabText, activeTab === 'Update' && styles.tabTextActive]}>Interaction</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tabItem, activeTab === 'History' && styles.tabItemActive]}
+                                onPress={() => setActiveTab('History')}
+                            >
+                                <Clock size={16} color={activeTab === 'History' ? '#6366f1' : '#94a3b8'} />
+                                <Text style={[styles.tabText, activeTab === 'History' && styles.tabTextActive]}>History</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tabItem, activeTab === 'Recordings' && styles.tabItemActive]}
+                                onPress={() => setActiveTab('Recordings')}
+                            >
+                                <Play size={16} color={activeTab === 'Recordings' ? '#6366f1' : '#94a3b8'} />
+                                <Text style={[styles.tabText, activeTab === 'Recordings' && styles.tabTextActive]}>Recordings</Text>
+                            </TouchableOpacity>
+                        </View>
+
                         <ScrollView style={styles.modalBody}>
-                            <View style={styles.leadShortInfo}>
-                                <View>
-                                    <Text style={styles.infoLabel}>Mobile Number</Text>
-                                    <Text style={styles.infoVal}>{selectedLog?.mobile}</Text>
-                                </View>
-                            </View>
-
-                            <Text style={styles.label}>Lead Name</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Edit lead name"
-                                value={editName}
-                                onChangeText={setEditName}
-                            />
-
-                            <Text style={styles.label}>Execution Status</Text>
-                            <View style={styles.statusGrid}>
-                                {STATUS_OPTIONS.map((status) => (
-                                    <TouchableOpacity
-                                        key={status}
-                                        style={[
-                                            styles.statusBtn,
-                                            updateStatus === status && { backgroundColor: getStatusColor(status), borderColor: getStatusColor(status) }
-                                        ]}
-                                        onPress={() => setUpdateStatus(status)}
-                                    >
-                                        <Text style={[styles.statusBtnText, updateStatus === status && { color: '#fff' }]}>{status}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <Text style={styles.label}>Call Remark / Summary</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="What was discussed?"
-                                value={updateRemark}
-                                onChangeText={setUpdateRemark}
-                                multiline
-                                numberOfLines={3}
-                            />
-
-                            <Text style={styles.label}>Next Follow-up Date</Text>
-                            <TouchableOpacity
-                                style={styles.calendarInput}
-                                onPress={() => setShowDatePicker(true)}
-                            >
-                                <CalendarIcon size={20} color="#6366f1" />
-                                <Text style={styles.calendarInputText}>
-                                    {nextFollowUp || 'Today (Default)'}
-                                </Text>
-                                <ChevronRight size={18} color="#94a3b8" />
-                            </TouchableOpacity>
-
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={nextFollowUp ? new Date(nextFollowUp) : new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={onDateChange}
-                                    minimumDate={new Date()}
-                                />
-                            )}
-
-                            <TouchableOpacity
-                                style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
-                                onPress={handleUpdateInteraction}
-                                disabled={submitting}
-                            >
-                                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Save Interaction</Text>}
-                            </TouchableOpacity>
-
-                            {/* History Section */}
-                            <Text style={[styles.label, { marginTop: 0 }]}>Recent Synced Recordings</Text>
-                            {loadingHistory ? (
-                                <ActivityIndicator color="#6366f1" style={{ marginVertical: 20 }} />
-                            ) : historyLogs.length > 0 ? (
-                                <View style={styles.historyContainer}>
-                                    {historyLogs.map((hLog) => (
-                                        <View key={hLog.id} style={styles.historyItem}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.historyTime}>{formatDate(hLog.call_time)} {formatTime(hLog.call_time)}</Text>
-                                                <Text style={styles.historyType}>{hLog.type} • {hLog.duration}s</Text>
-                                                <Text style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }} numberOfLines={1}>
-                                                    {hLog.recording_path.split('/').pop()}
-                                                </Text>
-                                            </View>
-                                            <TouchableOpacity
-                                                style={[styles.playBtn, playingId === hLog.id && styles.playBtnActive]}
-                                                onPress={() => handleToggleAudio(hLog)}
-                                            >
-                                                {playingId === hLog.id && playbackStatus?.isPlaying ? (
-                                                    <Pause size={14} color="#fff" />
-                                                ) : (
-                                                    <Play size={14} color={playingId === hLog.id ? "#fff" : "#6366f1"} />
-                                                )}
-                                            </TouchableOpacity>
+                            {activeTab === 'Update' ? (
+                                <>
+                                    <View style={styles.leadShortInfo}>
+                                        <View>
+                                            <Text style={styles.infoLabel}>Current Lead: {editName || selectedLog?.mobile}</Text>
                                         </View>
-                                    ))}
+                                    </View>
+
+                                    <Text style={styles.label}>Execution Status</Text>
+                                    <View style={styles.statusGrid}>
+                                        {STATUS_OPTIONS.map((status) => (
+                                            <TouchableOpacity
+                                                key={status}
+                                                style={[
+                                                    styles.statusBtn,
+                                                    updateStatus === status && { backgroundColor: getStatusColor(status), borderColor: getStatusColor(status) }
+                                                ]}
+                                                onPress={() => setUpdateStatus(status)}
+                                            >
+                                                <Text style={[styles.statusBtnText, updateStatus === status && { color: '#fff' }]}>{status}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+
+                                    <Text style={styles.label}>Call Remark / Summary</Text>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea]}
+                                        placeholder="What was discussed?"
+                                        value={updateRemark}
+                                        onChangeText={setUpdateRemark}
+                                        multiline
+                                        numberOfLines={3}
+                                    />
+
+                                    <Text style={styles.label}>Next Follow-up Date</Text>
+                                    <TouchableOpacity
+                                        style={styles.calendarInput}
+                                        onPress={() => setShowDatePicker(true)}
+                                    >
+                                        <CalendarIcon size={20} color="#6366f1" />
+                                        <Text style={styles.calendarInputText}>
+                                            {nextFollowUp || 'Today (Default)'}
+                                        </Text>
+                                        <ChevronRight size={18} color="#94a3b8" />
+                                    </TouchableOpacity>
+
+                                    {showDatePicker && (
+                                        <DateTimePicker
+                                            value={nextFollowUp ? new Date(nextFollowUp) : new Date()}
+                                            mode="date"
+                                            display="default"
+                                            onChange={onDateChange}
+                                            minimumDate={new Date()}
+                                        />
+                                    )}
+
+                                    <TouchableOpacity
+                                        style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+                                        onPress={handleUpdateInteraction}
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Post Activity Stamp</Text>}
+                                    </TouchableOpacity>
+                                </>
+                            ) : activeTab === 'History' ? (
+                                <View style={{ paddingVertical: 10 }}>
+                                    {loadingHistory ? (
+                                        <ActivityIndicator color="#6366f1" size="large" />
+                                    ) : historyLogs.length > 0 ? (
+                                        historyLogs.map((hLog) => (
+                                            <View key={hLog.id} style={styles.historyItem}>
+                                                <View style={{ flex: 1 }}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Text style={[styles.historyTime, { fontWeight: '900', color: '#1e293b' }]}>{formatDate(hLog.call_time)} at {formatTime(hLog.call_time)}</Text>
+                                                        <View style={{ marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: getCallTypeStyles(hLog.type).bg, borderRadius: 4 }}>
+                                                            <Text style={{ fontSize: 10, color: getCallTypeStyles(hLog.type).color, fontWeight: '700' }}>{hLog.type}</Text>
+                                                        </View>
+                                                    </View>
+                                                    <Text style={[styles.historyType, { marginTop: 4 }]}>Duration: {hLog.duration}s</Text>
+                                                </View>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.noHistoryText}>No past call history found.</Text>
+                                    )}
                                 </View>
                             ) : (
-                                <Text style={styles.noHistoryText}>No past recordings found for this number.</Text>
+                                <View style={{ paddingVertical: 10 }}>
+                                    {loadingRecordings ? (
+                                        <ActivityIndicator color="#6366f1" size="large" />
+                                    ) : recordings.length > 0 ? (
+                                        recordings.map((rec) => (
+                                            <View key={rec.id} style={styles.historyItem}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.historyTime, { fontWeight: '900', color: '#1e293b' }]}>Recording: {formatDate(rec.call_time)} {formatTime(rec.call_time)}</Text>
+                                                    <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }} numberOfLines={1}>
+                                                        File: {rec.recording_path.split('/').pop()}
+                                                    </Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    style={[styles.playBtn, playingId === rec.id && styles.playBtnActive]}
+                                                    onPress={() => handleToggleAudio({ ...rec, id: rec.id })} // Ensure ID is passed correctly
+                                                >
+                                                    {playingId === rec.id && playbackStatus?.isPlaying ? (
+                                                        <Pause size={16} color="#fff" />
+                                                    ) : (
+                                                        <Play size={16} color={playingId === rec.id ? "#fff" : "#6366f1"} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                                            <ShieldAlert size={40} color="#cbd5e1" />
+                                            <Text style={styles.noHistoryText}>No decoupled recordings found.</Text>
+                                        </View>
+                                    )}
+                                </View>
                             )}
                             <View style={{ height: 40 }} />
                         </ScrollView>
@@ -1423,5 +1477,10 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#fff',
         fontWeight: '700',
-    }
+    },
+    tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingHorizontal: 10 },
+    tabItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    tabItemActive: { borderBottomColor: '#6366f1' },
+    tabText: { fontSize: 13, fontWeight: '800', color: '#94a3b8' },
+    tabTextActive: { color: '#6366f1' },
 });

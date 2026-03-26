@@ -38,6 +38,24 @@ if ($date) {
     $where .= " AND DATE(c.call_time) = '$date'";
 }
 
+// Recordings Action
+$action = $_REQUEST['action'] ?? '';
+if ($action === 'recordings') {
+    $mobile = mysqli_real_escape_string($conn, $_REQUEST['mobile'] ?? '');
+    if (!$mobile) {
+        sendResponse(false, "Mobile number required", null, 400);
+    }
+    
+    $where_rec = "organization_id = $org_id AND mobile = '$mobile'";
+    $sql_rec = "SELECT * FROM call_recordings WHERE $where_rec ORDER BY call_time DESC";
+    $res_rec = mysqli_query($conn, $sql_rec);
+    $recordings = [];
+    while ($r = mysqli_fetch_assoc($res_rec)) {
+        $recordings[] = $r;
+    }
+    sendResponse(true, "Recordings fetched", ['recordings' => $recordings]);
+}
+
 $sql = "SELECT c.*, l.id as lead_id, l.name as lead_name, l.status as lead_status
         FROM call_logs c 
         LEFT JOIN leads l ON c.mobile = l.mobile 

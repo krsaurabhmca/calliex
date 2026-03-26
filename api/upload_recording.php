@@ -66,11 +66,18 @@ if (!is_dir($upload_dir)) {
 
 $target_path = $upload_dir . $new_filename;
 
-if (move_uploaded_file($_FILES['recording']['tmp_name'], $target_path)) {
+    if (move_uploaded_file($_FILES['recording']['tmp_name'], $target_path)) {
     $db_path = 'uploads/recordings/' . $org_id . '/' . $new_filename;
 
-    // ── 1. Try exact match within 10-minute window ──
-    $sql = "UPDATE call_logs 
+    // ── 1. Always insert into the dedicated call_recordings table ──
+    $ins_rec = "INSERT INTO call_recordings 
+                (organization_id, executive_id, mobile, call_time, recording_path, duration)
+                VALUES ($org_id, $executive_id, '$mobile', '$calltime', '$db_path', 0)";
+    mysqli_query($conn, $ins_rec);
+
+    // ── 2. (Optional) Still try to match an existing call log for the recording_path column
+    // This maintains backward compatibility for other parts of the system that look at call_logs.recording_path
+    $sql_match = "UPDATE call_logs 
             SET recording_path = '$db_path' 
             WHERE mobile = '$mobile' 
             AND ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) < 600
@@ -78,18 +85,10 @@ if (move_uploaded_file($_FILES['recording']['tmp_name'], $target_path)) {
             AND recording_path IS NULL
             ORDER BY ABS(TIMESTAMPDIFF(SECOND, call_time, '$calltime')) ASC
             LIMIT 1";
-    mysqli_query($conn, $sql);
+    mysqli_query($conn, $sql_match);
     $matched = mysqli_affected_rows($conn) > 0;
 
-    // ── 2. If no match, insert an unmatched recording log entry ──
-    if (!$matched) {
-        $ins = "INSERT IGNORE INTO call_logs 
-                (organization_id, executive_id, mobile, call_time, type, duration, recording_path)
-                VALUES ($org_id, $executive_id, '$mobile', '$calltime', 'Incoming', 0, '$db_path')";
-        mysqli_query($conn, $ins);
-    }
-
-    sendResponse(true, $matched ? 'Uploaded and matched' : 'Uploaded, no matching log (saved as new entry)', [
+    sendResponse(true, 'Recording uploaded and saved successfully', [
         'path'    => $db_path,
         'mobile'  => $mobile,
         'time'    => $calltime,
